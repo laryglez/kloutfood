@@ -23,14 +23,22 @@ class Order
     #[ORM\ManyToMany(targetEntity: recipe::class, inversedBy: 'orders')]
     private Collection $recipes;
 
+    private float $subtotal;
+
     public function __construct()
     {
         $this->recipes = new ArrayCollection();
+        $this->subtotal = 0.0;
     }
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getSubtotal()
+    {
+        return $this->subtotal;
     }
 
     public function getOwner(): ?user
@@ -83,7 +91,7 @@ class Order
                 }
                 else
                 {
-                    $result[$recipe_product->getProduct()->getId()] = array("sum"=> $recipe_product->getAmount(), "unit_quantity"=> $recipe_product->getProduct()->getAmount());
+                    $result[$recipe_product->getProduct()->getId()] = array("sum"=> $recipe_product->getAmount(), "product"=> $recipe_product->getProduct());
                 }
             }
         }
@@ -97,14 +105,16 @@ class Order
         $result = array();
         foreach($summation_products as $product_id => $product)
         {
-            if($product["unit_quantity"] < $product["sum"] )
+            if($product["product"]->getAmount() < $product["sum"] )
             {
-                $units = ceil($product["sum"] / $product["unit_quantity"]);
+                $units = ceil($product["sum"] / $product["product"]->getAmount());
                 $result[$product_id] = $units;
+                $this->subtotal += $units*$product["product"]->getPrice();
             }
             else
             {
                 $result[$product_id] = 1;
+                $this->subtotal += $product["product"]->getPrice();
             }
         }
 
